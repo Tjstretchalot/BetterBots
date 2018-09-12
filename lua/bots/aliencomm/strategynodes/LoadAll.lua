@@ -1,0 +1,7 @@
+Script.Load('lua/bots/aliencomm/strategynodes/AlienCheckResourcesNode.lua')
+Script.Load('lua/bots/aliencomm/strategynodes/AlienCystLocationNode.lua')
+Script.Load('lua/bots/aliencomm/strategynodes/AlienPlaceHarvesterNode.lua')
+Script.Load('lua/bots/aliencomm/strategynodes/AlienSelectResourcePointToClaimNode.lua')
+Script.Load('lua/bots/aliencomm/strategynodes/AlienSelectResourcePointToCystNode.lua')
+Script.Load('lua/bots/aliencomm/strategynodes/AlienSetActionCooldownNode.lua')
+Script.Load('lua/bots/aliencomm/strategynodes/AlienWaitActionCooldownNode.lua')
