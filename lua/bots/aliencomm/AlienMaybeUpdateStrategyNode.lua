@@ -26,19 +26,24 @@ end
 
 function AlienMaybeUpdateStrategyNode:DoFullStrategyCheck(context)
   local oldStrategy = context.strategy
+  local oldStrategyScore = oldStrategy and oldStrategy:GetStrategyScore(context.senses) or nil
 
-  local bestStrategy, bestStrategyScore = nil, nil
+  local bestStrategies, bestStrategyScore = {}, oldStrategyScore or kAlienStrategyScore.NotViable
   for _, strat in ipairs(context.strategies) do
     local score = strat:GetStrategyScore(context.senses)
-    if not bestStrategy or score > bestStrategyScore then
-      bestStrategy, bestStrategyScore = strat, score
+    if score == bestStrategyScore then
+      table.insert(bestStrategies, strat)
+    elseif score > bestStrategyScore then
+      bestStrategies = { strat }
+      bestStrategyScore = score
     end
   end
 
-  if oldStrategy and (not bestStrategy or oldStrategy:GetStrategyScore(context.senses) == bestStrategyScore) then
+  if oldStrategy and (oldStrategyScore == bestStrategyScore) then
     if context.debug then Log('old strategy is best with a score of %s', bestStrategyScore) end
     return true
   end
+  local bestStrategy = bestStrategies[math.random(1, #bestStrategies)]
   if context.debug then Log('new strategy is %s with a score of %s', bestStrategy, bestStrategyScore) end
 
   if not bestStrategy then return false end
