@@ -18,12 +18,20 @@ function RepeatUntilFailureNode:Run(context)
   end
 
   local res = self.child:Run(context)
-  if res == self.Running then return res end
+  if res == self.Running then
+    if context.debug then Log('RepeatUntilFailureNode child %s returned running -> returning running', self.child) end
+    return res
+  end
 
   self.childStarted = false
   self.child:Finish(context, true, res)
 
-  if res == self.Success then return self.Running end
+  if res == self.Success then
+    if context.debug then Log('RepeatUntilFailureNode child %s returned success -> returning running', self.child) end
+    return self.Running
+  end
+
+  if context.debug then Log('RepeatUntilFailureNode child %s returned failure (%s) -> returning failure', self.child, res) end
   return res
 end
 

@@ -9,8 +9,10 @@ Script.Load('lua/bots/aliencomm/AlienRunStrategyNode.lua')
 Script.Load('lua/bots/aliencomm/strategynodes/LoadAll.lua')
 
 Script.Load('lua/bots/aliencomm/strategies/AlienBaseStrategy.lua')
-Script.Load('lua/bots/aliencomm/strategies/AlienCollectEarlyResourceNodes.lua')
+Script.Load('lua/bots/aliencomm/strategies/AlienCollectEarlyResourceNodesStrategy.lua')
+Script.Load('lua/bots/aliencomm/strategies/AlienCreateSpursStrategy.lua')
 Script.Load('lua/bots/aliencomm/strategies/AlienUpgradeHiveShiftStrategy.lua')
+Script.Load('lua/bots/aliencomm/strategies/AlienWaitOnResStrategy.lua')
 
 class 'AlienCommanderTree'
 
@@ -19,8 +21,10 @@ end
 
 function AlienCommanderTree:InitStrategies()
   local res = {
-    AlienCollectEarlyResourceNodes(),
-    AlienUpgradeHiveShiftStrategy()
+    AlienCollectEarlyResourceNodesStrategy(),
+    AlienCreateSpursStrategy(),
+    AlienUpgradeHiveShiftStrategy(),
+    AlienWaitOnResStrategy()
   }
 
   for _, str in ipairs(res) do

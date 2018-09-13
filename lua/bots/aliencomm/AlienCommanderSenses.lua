@@ -1,12 +1,18 @@
 class 'AlienCommanderSenses'
 
+local needSetupHooks = false
+if not gAlienSensesTable then
+  gAlienSensesTable = setmetatable({}, {__mode = 'k'})
 
-local maxInfestationRange = math.max(kInfestationRadius, kHiveInfestationRadius)
+  needSetupHooks = true
+end
 
 function AlienCommanderSenses:Initialize()
   self.state = kGameState.NotStarted
   self.team = kTeam2Index -- todo
   self.enemyTeam = GetEnemyTeamNumber(self.team)
+
+  gAlienSensesTable[self] = true
 end
 
 function AlienCommanderSenses:Update(player)
@@ -36,6 +42,8 @@ function AlienCommanderSenses:Clean()
   self.unclaimedResourcePoints = nil
   self.nextUpdateEnemies = nil
   self.enemies = nil
+  self.enemyMainBaseName = nil
+  self.recentlyResearchingStructures = nil
 end
 
 -- Public functions
@@ -120,6 +128,42 @@ function AlienCommanderSenses:GetKnownEnemiesInRoom(locationName)
   return self.enemies.byLocation[location] or {}
 end
 
+--- Get the name of the location where the enemy has their "main base"
+-- @treturn string name of enemy main base
+function AlienCommanderSenses:GetEnemyMainBaseName()
+  return self.enemyMainBaseName
+end
+
+--- Returns true if the structure with the given id is potentially still
+-- researching.
+--
+-- This is a workaround for the time between research completing and
+-- the tech tree being updated.
+--
+-- @tparam number structId the id of the structure
+-- @treturn boolean true if still researching, false otherwise
+function AlienCommanderSenses:GetIsRecentlyResearching(structId)
+  if not self.recentlyResearchingStructures then return false end
+
+  local resUntil = self.recentlyResearchingStructures[structId]
+  if not resUntil then return false end
+
+  if resUntil < self.time then
+    self.recentlyResearchingStructures[structId] = nil
+    return false
+  end
+
+  return true
+end
+
+--- Sets the time until the specified structure finishes researching.
+--
+-- @tparam number structId the id of the structure
+-- @tparam number timeUntil the time at which the structure finishes (do NOT include wiggle room)
+function AlienCommanderSenses:SetIsRecentlyResearchingUntil(structId, timeUntil)
+  self.recentlyResearchingStructures = self.recentlyResearchingStructures or {}
+  self.recentlyResearchingStructures[structId] = timeUntil + 3 -- tech tree takes a long time to update
+end
 -- End public functions
 
 function AlienCommanderSenses:DoUpdate(player, gameInfo)
@@ -130,6 +174,7 @@ function AlienCommanderSenses:DoUpdate(player, gameInfo)
   self:UpdateHarvesters()
   self:UpdateUnclaimedResourcePoints()
   self:UpdateEnemies()
+  self:UpdateEnemyMainBase()
 end
 
 function AlienCommanderSenses:UpdateHarvesters()
@@ -187,21 +232,7 @@ function AlienCommanderSenses:UpdateHarvesters()
     end
 
     info.hasInfestation = harv:GetGameEffectMask(kGameEffect.OnInfestation)
-    if not info.hasInfestation then -- technically you could remove this check since you might have infestation now but not in the future
-      info.willHaveInfestation = false
-      local nearbyInfesters = GetEntitiesWithMixinWithinRange('Infestation', maxInfestationRange)
-      for _, infester in ipairs(nearbyInfesters) do
-        local dist = (harv:GetOrigin() - infester:GetOrigin()):GetLength()
-        if dist < infester:GetInfestationMaxRadius() then
-          if not infester:isa('Cyst') or infester:GetIsActuallyConnected() then
-            info.willHaveInfestation = true
-            break
-          end
-        end
-      end
-    else
-      info.willHaveInfestation = true
-    end
+    info.willHaveInfestation = info.hasInfestation or AlienCommUtils.HasNearEnoughInfester(harv)
   end
 
   for missingId, _ in pairs(missingHarvesters) do
@@ -246,18 +277,25 @@ function AlienCommanderSenses:UpdateUnclaimedResourcePoints()
       info.hasInfestation = false
       info.willHaveInfestation = false
       local origin = rp:GetOrigin()
-      for _, infester in ipairs(GetEntitiesWithMixinWithinRange('Infestation', origin, maxInfestationRange)) do
-        local dist = (origin - infester:GetOrigin()):GetLength()
-        if dist < infester:GetCurrentInfestationRadiusCached() then
+      local potentialInfesters = GetEntitiesWithMixinWithinRange('Infestation', origin, AlienCommUtils.maxInfestationRange)
+      for _, infester in ipairs(potentialInfesters) do
+        local infOrigin = infester:GetOrigin()
+        if infester:GetIsPointOnInfestation(origin) then
           info.hasInfestation = true
           info.willHaveInfestation = true
           break
         end
+      end
 
-        if not info.willHaveInfestation then
-          if dist < infester:GetInfestationMaxRadius() then
-            if not infester:isa('Cyst') or infester:GetIsActuallyConnected() then
+      if not info.hasInfestation then
+        for _, infester in ipairs(potentialInfesters) do
+          local curRadius = infester:GetCurrentInfestationRadiusCached()
+          local maxRadius = infester:GetInfestationMaxRadius()
+          if curRadius ~= maxRadius then
+            if AlienCommUtils.IsInfesterCloseEnough(infester:GetOrigin(), maxRadius, origin, infester:GetCoords().yAxis) and
+                (not infester:isa('Cyst') or infester:GetIsActuallyConnected()) then
               info.willHaveInfestation = true
+              break
             end
           end
         end
@@ -290,7 +328,9 @@ function AlienCommanderSenses:UpdateEnemies()
 
   local missingIds = {}
   for _, info in ipairs(self.enemies.fullArr) do
-    if self.time > info.lastSeen + 5 then -- do this check now to avoid blowing up size of missingIds
+    -- do this check now to avoid blowing up size of missingIds. We mostly
+    -- prune structures and disconnected players using this
+    if self.time > info.lastSeen + 30 then
       missingIds[info.id] = true
     end
   end
@@ -332,34 +372,105 @@ function AlienCommanderSenses:UpdateEnemies()
         assert(ind)
         table.remove(self.enemies.byLocation[info.locationName], ind)
       end
-      
+
       info.locationName = locNm
       table.insert(self.enemies.byLocation[locNm], info)
     end
   end
 
   for id, _ in pairs(missingIds) do
-    local info = self.enemies.byId[id]
-    local ind = false
-    for i = 1, #self.enemies.fullArr do
-      if self.enemies.fullArr[i].id == id then
-        ind = i
-        break
-      end
-    end
-    assert(ind)
-    table.remove(self.enemies.fullArr, ind)
+    self:_RemoveEnemyById(id)
+  end
+end
 
-    ind = false
-    for i = 1, #self.enemies.byLocation[info.locationName] do
-      if self.enemies.byLocation[info.locationName][i].id == id then
-        ind = i
-        break
-      end
-    end
-    assert(ind)
-    table.remove(self.enemies.byLocation[info.locationName], ind)
+function AlienCommanderSenses:_RemoveEnemyById(id)
+  local info = self.enemies.byId[id]
+  if not info then return end
 
-    self.enemies.byId[id] = nil
+  local ind = false
+  for i = 1, #self.enemies.fullArr do
+    if self.enemies.fullArr[i].id == id then
+      ind = i
+      break
+    end
+  end
+  assert(ind)
+  table.remove(self.enemies.fullArr, ind)
+
+  ind = false
+  for i = 1, #self.enemies.byLocation[info.locationName] do
+    if self.enemies.byLocation[info.locationName][i].id == id then
+      ind = i
+      break
+    end
+  end
+  assert(ind)
+  table.remove(self.enemies.byLocation[info.locationName], ind)
+
+  self.enemies.byId[id] = nil
+end
+
+function AlienCommanderSenses:OnEntityKilled(targetEnt, killer, doer, point, dir)
+  if self.enemies then
+    local id = targetEnt:GetId()
+    if self.enemies.byId and self.enemies.byId[id] then
+      self:_RemoveEnemyById(id)
+    end
+  end
+end
+
+function AlienCommanderSenses:UpdateEnemyMainBase()
+  if self.nextUpdateEnemyMainBase and self.time < self.nextUpdateEnemyMainBase then
+    return
+  end
+
+  self.nextUpdateEnemyMainBase = self.time + 15 + math.random() * 0.2
+
+  local viableLocNms = {}
+  for _, comm in ientitylist(Shared.GetEntitiesWithClassname('CommandStation')) do
+    if comm:GetIsAlive() and comm:GetIsBuilt() then
+      local locNm = UrgentGetLocationName(comm)
+      if locNm == self.enemyMainBaseName then return end
+
+      table.insert(viableLocNms, locNm)
+    end
+  end
+
+  local ips = Shared.GetEntitiesWithClassname('InfantryPortal')
+  local locsToCounts = {}
+  for _, ip in ientitylist(ips) do
+    local locNm = UrgentGetLocationName(ip)
+
+    if not locsToCounts[locNm] then
+      locsToCounts[locNm] = 0
+    end
+
+    locsToCounts[locNm] = locsToCounts[locNm] + 1
+  end
+
+  local bestLoc, bestLocIps = nil, nil
+  for _, loc in ipairs(viableLocNms) do
+    local num = locsToCounts[loc] or 0
+
+    if not bestLoc or num > bestLocIps then
+      bestLoc, bestLocIps = loc, num
+    end
+  end
+
+  self.enemyMainBaseName = bestLoc or ''
+end
+
+-- hooks
+if needSetupHooks then
+  local function OnEntityKilled(targetEnt, killer, doer, point, dir)
+    for senses, _ in pairs(gAlienSensesTable) do
+      senses:OnEntityKilled(targetEnt, killer, doer, point, dir)
+    end
+  end
+
+  local oldFunc = TeamDeathMessageMixin.OnEntityKilled
+  function TeamDeathMessageMixin:OnEntityKilled(targetEnt, killer, doer, point, dir)
+    oldFunc(self, targetEnt, killer, doer, point, dir)
+    OnEntityKilled(targetEnt, killer, doer, point, dir)
   end
 end

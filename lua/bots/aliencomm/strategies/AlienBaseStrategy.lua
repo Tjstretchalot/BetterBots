@@ -1,3 +1,5 @@
+Script.Load('lua/bots/aliencomm/strategies/AlienStrategyUtils.lua')
+
 class 'AlienBaseStrategy'
 
 function AlienBaseStrategy:Initialize()

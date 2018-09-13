@@ -9,9 +9,15 @@ function AlienMaybeUpdateStrategyNode:Run(context)
     return self.Failure
   end
 
+  if context.strategy and context.strategy.context.forceRecheckStrategy then
+    context.strategy.context.forceRecheckStrategy = false
+    context.nextCheckStrategyTime = 0
+  end
+
   if not context.strategy or context.senses.time > context.nextCheckStrategyTime then
     context.strategyStarted = false
     context.nextCheckStrategyTime = context.senses.time + 10
+    if context.debug then Log('doing full strategy check') end
     return self:DoFullStrategyCheck(context) and self.Success or self.Failure
   end
 
@@ -30,8 +36,10 @@ function AlienMaybeUpdateStrategyNode:DoFullStrategyCheck(context)
   end
 
   if oldStrategy and (not bestStrategy or oldStrategy:GetStrategyScore(context.senses) == bestStrategyScore) then
+    if context.debug then Log('old strategy is best with a score of %s', bestStrategyScore) end
     return true
   end
+  if context.debug then Log('new strategy is %s with a score of %s', bestStrategy, bestStrategyScore) end
 
   if not bestStrategy then return false end
   if oldStrategy then oldStrategy:Finish() end

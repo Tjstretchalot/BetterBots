@@ -395,6 +395,10 @@ end
 function PlayerBot:OnDestroy()
     Bot.OnDestroy(self)
 
+    if self.brain then
+      self.brain:OnLoseControl(self)
+    end
+
     self.aim = nil
     self.brain = nil
     self.motion = nil

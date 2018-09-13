@@ -1,5 +1,17 @@
 class 'AlienSelectResourcePointToCystNode' (BTNode)
 
+function AlienSelectResourcePointToCystNode:Setup(avoidNaturals, maxCystedAtATime)
+  self.avoidNaturals = avoidNaturals or false
+  self.maxCystedAtATime = maxCystedAtATime or 1
+  return self
+end
+
+function AlienSelectResourcePointToCystNode:Initialize()
+  BTNode.Initialize(self)
+  self.avoidNaturals = self.avoidNaturals or false
+  self.maxCystedAtATime = self.maxCystedAtATime or 1
+end
+
 function AlienSelectResourcePointToCystNode:Run(context)
   local numCysted = 0
 
@@ -10,7 +22,7 @@ function AlienSelectResourcePointToCystNode:Run(context)
     end
   end
 
-  if numCysted >= 2 then return self.Failure end
+  if numCysted >= self.maxCystedAtATime then return self.Failure end
 
   local hives = {}
   for _, hive in ientitylist(Shared.GetEntitiesWithClassname('Hive')) do
@@ -19,18 +31,33 @@ function AlienSelectResourcePointToCystNode:Run(context)
     end
   end
 
+  local locsToAvoid = {}
+
+  if self.avoidNaturals then
+    local enemyMainBaseName = context.senses:GetEnemyMainBaseName()
+    if enemyMainBaseName ~= nil and enemyMainBaseName ~= '' then
+      local adj = GetAdjacentTo(enemyMainBaseName)
+      for i=1, math.min(2, #adj) do -- maximum of 2 naturals to avoid
+        locsToAvoid[adj[i]] = true
+      end
+    end
+  end
+
   local bestNode, bestDistSq = nil, nil
   for _, info in ipairs(infos) do
     if not info.hasInfestation and not info.willHaveInfestation then
       local ent = Shared.GetEntity(info.id)
       if ent then
-        local enemies = context.senses:GetKnownEnemiesInRoom(UrgentGetLocationName(ent))
+        local locNm = UrgentGetLocationName(ent)
+        local acceptable = #context.senses:GetKnownEnemiesInRoom(locNm) == 0 and not locsToAvoid[locNm]
 
-        for _, hive in ipairs(hives) do
-          local distSq = hive:GetOrigin():GetDistanceSquared(ent:GetOrigin())
+        if acceptable then
+          for _, hive in ipairs(hives) do
+            local distSq = hive:GetOrigin():GetDistanceSquared(ent:GetOrigin())
 
-          if not bestNode or distSq < bestDistSq then
-            bestNode, bestDistSq = ent, distSq
+            if not bestNode or distSq < bestDistSq then
+              bestNode, bestDistSq = ent, distSq
+            end
           end
         end
       end

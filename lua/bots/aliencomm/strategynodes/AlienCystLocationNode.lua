@@ -5,7 +5,13 @@ class 'AlienCystLocationNode' (BTNode)
 local debugCysts = false
 
 function AlienCystLocationNode:Run(context)
-  if not context.location then return self.Failure end
+  if not context.location then
+    if context.debug then
+      Log('AlienCystLocationNode -> no location, returning failure')
+      Log(debug.traceback())
+    end
+    return self.Failure
+  end
 
   local extents = GetExtents(kTechId.Cyst)
   local cystPoint = GetRandomSpawnForCapsule(
@@ -18,7 +24,27 @@ function AlienCystLocationNode:Run(context)
     GetIsPointOffInfestation -- validation func
   )
 
-  if context.debug or debugCysts then Log('cystPoint = %s', cystPoint) end
+  if context.debug or debugCysts then Log('Attempting to cyst %s; cystPoint = %s', GetLocationForPoint(context.location):GetName(), cystPoint) end
+
+  if not cystPoint then
+    local randPoint
+
+    for i = 1, 10 do
+      randPoint = context.location + Vector(math.random() * Cyst.kInfestationRadius, 1, math.random() * Cyst.kInfestationRadius)
+      local trace = Shared.TraceRay(randPoint, randPoint + Vector(0, -5, 0), CollisionRep.Move, PhysicsMask.All, EntityFilterAll())
+
+      if trace.endPoint then
+        randPoint.y = trace.endPoint.y
+        if AlienCommUtils.IsInfesterCloseEnough(randPoint, Cyst.kInfestationRadius, context.location) then
+          cystPoint = randPoint
+          break
+        end
+      end
+    end
+
+    if context.debug or debugCysts then Log('Attempting to cyst %s using random loc; cystPoint = %s', GetLocationForPoint(context.location):GetName(), cystPoint) end
+  end
+
   if not cystPoint then return self.Failure end
 
   local cystPoints = GetCystPoints(cystPoint, true, context.senses.team)

@@ -15,6 +15,8 @@ Script.Load('lua/bots/behaviortree/nodes/WaitForDurationNode.lua')
 Script.Load('lua/bots/behaviortree/nodes/RepeatDecorator.lua')
 Script.Load('lua/bots/behaviortree/nodes/RunConcurrentNode.lua')
 Script.Load('lua/bots/behaviortree/nodes/RepeatUntilFailureNode.lua')
+Script.Load('lua/bots/behaviortree/nodes/SetContextFlagNode.lua')
+Script.Load('lua/bots/behaviortree/nodes/CheckContextFlagNode.lua')
 
 class 'BehaviorTree'
 

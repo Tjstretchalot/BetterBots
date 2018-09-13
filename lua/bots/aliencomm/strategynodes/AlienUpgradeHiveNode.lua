@@ -18,6 +18,13 @@ function AlienUpgradeHiveNode:Run(context)
     return self.Failure
   end
 
-  local success = AlienCommUtils.ExecuteTechId(com, self.techId, Vector(0, 0, 0), target)
+  local player = context.bot:GetPlayer()
+  local techNode = player:GetTechTree():GetTechNode(self.techId)
+  local success = player:AttemptToResearchOrUpgrade(techNode, target)
+
+  if success then
+    context.senses:SetIsRecentlyResearchingUntil(context.targetId, context.senses.time + techNode.time)
+  end
+
   return success and self.Success or self.Failure
 end
