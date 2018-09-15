@@ -24,13 +24,15 @@ function AlienUpgradeBiomassOfTargetHiveNode:Run(context)
 
   local techNode = GetTechTree(context.senses.team):GetTechNode(techId)
   local cost = techNode.cost
+  local player = context.bot:GetPlayer()
 
   if context.senses.resources < cost then return self.Failure end
 
-  local success = context.bot:GetPlayer():AttemptToResearchOrUpgrade(techNode, target)
+  local success = player:AttemptToResearchOrUpgrade(techNode, target)
 
   if success then
     context.senses:SetIsRecentlyResearchingUntil(context.targetId, context.senses.time + techNode.time)
+    player:GetTeam():AddTeamResources(-cost)
   end
 
   return success and self.Success or self.Failure

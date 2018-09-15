@@ -8,13 +8,9 @@ function AlienExpensiveBiomassStrategy:GetStrategyScore(senses)
 
   local foundHiveToUpg = false
   for _, hive in ientitylist(Shared.GetEntitiesWithClassname('Hive')) do
-    if hive:GetBioMassLevel() < 3 then
-      if senses.debug then Log('ExpensiveBiomass - hive in %s has biomass %s so nogo', hive:GetLocationName(), hive:GetBioMassLevel()) end
-      return kAlienStrategyScore.NotViable
-    end
-
-    if hive:GetBioMassLevel() == 3 then
+    if hive:GetBioMassLevel() <= 3 then
       foundHiveToUpg = true
+      break
     end
   end
 

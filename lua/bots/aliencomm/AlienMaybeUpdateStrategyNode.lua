@@ -65,6 +65,7 @@ function AlienMaybeUpdateStrategyNode:DoFullStrategyCheck(context)
   local playerTeamTyp = player:GetTeamType()
   local playersForTeam = GetEntitiesForTeam('Player', playerTeamNum)
   for _, msg in ipairs(msgs) do
+    Log('\'%s\' said to team: %s', playerName, msg)
     for _, player in ipairs(playersForTeam) do
       Server.SendNetworkMessage(player, 'Chat', BuildChatMessage(
         true, -- team only

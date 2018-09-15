@@ -15,7 +15,7 @@ function AlienUpgradeChargeStrategy:GetStrategyScore(senses)
   local numberOnosOrWithOnosRes = 0
 
   for _, player in ientitylist(Shared.GetEntitiesWithClassname('PlayerInfoEntity')) do
-    if player.teamNumber == senses.team and (player.resources >= kOnosCost or player.currentTech == kTechId.Onos) then
+    if player.teamNumber == senses.team and not player:isa('Commander') and (player.resources >= kOnosCost or player.currentTech == kTechId.Onos) then
       numberOnosOrWithOnosRes = numberOnosOrWithOnosRes + 1
     end
   end

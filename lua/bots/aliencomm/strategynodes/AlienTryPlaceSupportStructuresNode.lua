@@ -33,6 +33,7 @@ function AlienTryPlaceSupportStructuresNode:Run(context)
   if self:TryPlaceCragNearContestedResource(context, crags, shifts) then return self.Success end
   if self:TryPlaceShiftNearCrag(context, crags, shifts) then return self.Success end
   if self:TryPlaceWhipNearContestedResource(context, crags, shifts) then return self.Success end
+  if self:TryPlaceContaminateNearCommandStation(context, crags, shifts) then return self.Success end
 
   return self.Failure
 end
@@ -56,6 +57,7 @@ local function AlertPlaceStructureNearPoint(self, context, location, techId)
   local playerTeamTyp = player:GetTeamType()
   local msg = 'Placing a ' .. EnumToString(kTechId, techId) .. ' in ' .. GetLocationForPoint(location):GetName()
 
+  Log('\'%s\' said to team: %s', playerName, msg)
   for _, player in ipairs(GetEntitiesForTeam('Player', playerTeamNum)) do
     Server.SendNetworkMessage(player, 'Chat', BuildChatMessage(
       true, -- team only
@@ -125,10 +127,10 @@ end
 function AlienTryPlaceSupportStructuresNode:TryPlaceCragNearContestedResource(context, crags, shifts)
   for _, info in ipairs(context.senses:GetHarvesterInfos()) do
     local harv = Shared.GetEntity(info.id)
-    if harv and not info.underAttack and #info.attackHistory >= 3 and not HasEffectFromAtPoint(crags, harv:GetOrigin(), Crag.kHealRadius) then
+    if harv and not info.underAttack and #info.attackHistory >= 1 and not HasEffectFromAtPoint(crags, harv:GetOrigin(), Crag.kHealRadius) then
       local recentAttacks = CountRecentAttacksFromHistory(context, info.attackHistory)
 
-      if recentAttacks >= 3 then
+      if recentAttacks >= 1 then
         return TryPlaceStructureNearPoint(self, context, harv:GetOrigin(), kTechId.Crag)
       end
     end
@@ -150,7 +152,7 @@ function AlienTryPlaceSupportStructuresNode:TryPlaceWhipNearContestedResource(co
 
   for _, info in ipairs(context.senses:GetHarvesterInfos()) do
     local harv = Shared.GetEntity(info.id)
-    if harv and not info.underAttack and #info.attackHistory >= 3 then
+    if harv and not info.underAttack and #info.attackHistory >= 1 then
       if not whips then
         whips = {}
         for _, whip in ientitylist(Shared.GetEntitiesWithClassname('Whip')) do
@@ -163,7 +165,7 @@ function AlienTryPlaceSupportStructuresNode:TryPlaceWhipNearContestedResource(co
       if not HasEffectFromAtPoint(whips, harv:GetOrigin(), Whip.kRange) then
         local recentAttacks = CountRecentAttacksFromHistory(context, info.attackHistory)
 
-        if recentAttacks >= 3 then
+        if recentAttacks >= 1 then
           return TryPlaceStructureNearPoint(self, context, harv:GetOrigin(), kTechId.Whip, 7)
         end
       end
@@ -171,4 +173,30 @@ function AlienTryPlaceSupportStructuresNode:TryPlaceWhipNearContestedResource(co
   end
 
   return false
+end
+
+function AlienTryPlaceSupportStructuresNode:TryPlaceContaminateNearCommandStation(context, crags, shifts)
+  if not GetTechTree(context.senses.team):GetTechNode(kTechId.BioMassTen):GetHasTech() then
+    return false
+  end
+
+  if self.contamCooldownUntil and context.senses.time < self.contamCooldownUntil then
+    return false
+  end
+
+  self.contamCooldownUntil = context.senses.time + kContaminationCooldown
+
+  local enemyChair = nil
+  for _, chair in ientitylist(Shared.GetEntitiesWithClassname('CommandStation')) do
+    if chair:GetIsAlive() then
+      enemyChair = chair
+      break
+    end
+  end
+
+  if enemyChair then
+    TryPlaceStructureNearPoint(self, context, enemyChair:GetOrigin(), kTechId.Contamination, 7)
+  end
+
+  return false -- we don't want to spend the normal cooldown on contamination
 end

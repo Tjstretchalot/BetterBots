@@ -20,10 +20,15 @@ function AlienUpgradeHiveNode:Run(context)
 
   local player = context.bot:GetPlayer()
   local techNode = player:GetTechTree():GetTechNode(self.techId)
+  local cost = techNode.cost
+
+  if context.senses.resources < cost then return self.Failure end
+  
   local success = player:AttemptToResearchOrUpgrade(techNode, target)
 
   if success then
     context.senses:SetIsRecentlyResearchingUntil(context.targetId, context.senses.time + techNode.time)
+    player:GetTeam():AddTeamResources(-cost)
   end
 
   return success and self.Success or self.Failure

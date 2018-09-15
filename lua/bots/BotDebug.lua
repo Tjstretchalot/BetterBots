@@ -68,12 +68,15 @@ gBotDebug:AddBoolean("spam", false)
 gDebugSelectedBots = false
 
 Event.Hook("Console_bot_target",
-        function(client, name)
-
+        function(client, ...)
+            local args = {...}
+            local name = nil
+            if #args > 0 then
+              name = table.concat(args, ' ')
+            end
             if name then
-              name = '[BOT] ' .. name
               for _, bot in ipairs(gServerBots) do
-                if bot:GetPlayer():GetName() == name then
+                if (bot.GetNamePrefix and bot:GetNamePrefix() or '') .. bot:GetPlayer():GetName() == name then
                   if not bot.brain then
                     Log('found bot! but no brain to debug :(')
                   else

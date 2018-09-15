@@ -70,8 +70,11 @@ function BTBrain:OnLoseControl(bot)
   bot.tree = nil
   bot.treeStarted = nil
   bot.brain = nil
-  bot:GetMotion():SetDesiredMoveTarget(nil)
-  bot:GetMotion():SetDesiredViewTarget(nil)
+
+  if bot:GetPlayer() then
+    bot:GetMotion():SetDesiredMoveTarget(nil)
+    bot:GetMotion():SetDesiredViewTarget(nil)
+  end
 end
 
 function BTBrain:Update(bot, move)

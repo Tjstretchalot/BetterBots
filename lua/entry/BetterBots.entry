@@ -1,0 +1,4 @@
+modEntry = {
+	Priority = 29,
+	FileHooks = "lua/BetterBots/FileHooks.lua"
+}

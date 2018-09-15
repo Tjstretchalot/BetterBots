@@ -194,18 +194,18 @@ function LerkSetPriorityTargetNode:IsBetterTargetThanMarine(oldInfo, newInfo, bo
     return false
   elseif newInfo.entity:isa('PhaseGate') then
     -- prefer marines with less than 35% health
-    oldInfo.health = oldInfo.health or oldInfo:GetHealthScalar()
+    oldInfo.health = oldInfo.health or oldInfo.entity:GetHealthScalar()
     if oldInfo.health <= 0.35 then return false end
 
     -- prefer phase gates with less than 10% health
-    newInfo.health = newInfo.health or newInfo:GetHealthScalar()
+    newInfo.health = newInfo.health or newInfo.entity:GetHealthScalar()
     if newInfo.health <= 0.1 then return true end
 
     -- prefer marines
     return false
   elseif newInfo.entity:isa('Exo') then
     -- prefer exos with <50% health
-    newInfo.health = newInfo.health or newInfo:GetHealthScalar()
+    newInfo.health = newInfo.health or newInfo.entity:GetHealthScalar()
     if newInfo.health <= 0.5 then return true end
 
     -- prefer marines

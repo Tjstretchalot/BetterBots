@@ -28,6 +28,7 @@ function AlienResearchInChamberNode:Run(context)
 
   if success then
     context.senses:SetIsRecentlyResearchingUntil(context.targetId, context.senses.time + techNode.time)
+    player:GetTeam():AddTeamResources(-cost)
   end
 
   return success and self.Success or self.Failure

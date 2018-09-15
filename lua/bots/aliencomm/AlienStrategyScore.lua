@@ -4,5 +4,6 @@ kAlienStrategyScore = enum {
   'Lower',
   'Average',
   'Higher',
-  'Highest'
+  'Highest',
+  'DebugForce'
 }

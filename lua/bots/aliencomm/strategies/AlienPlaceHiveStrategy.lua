@@ -10,7 +10,7 @@ function AlienPlaceHiveStrategy:GetStrategyScore(senses)
       if senses.debug then Log('PlaceHive - is dropping hive @ %s safe? %s (rsn = %s)', tp:GetLocationName(), safe, rsn) end
       local defended, rsn = AlienCommUtils.IsDefendedHiveDrop(senses, tp)
       if senses.debug then Log('PlaceHive - is dropping hive @ %s defended? %s (rsn = %s)', defended, rsn) end
-      if safe and defended then return kAlienStrategyScore.Highest end
+      if safe and defended then return kAlienStrategyScore.Higher end
       local viable = safe or defended
 
       if viable then
