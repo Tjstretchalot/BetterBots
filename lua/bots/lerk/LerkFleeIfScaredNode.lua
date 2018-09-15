@@ -248,10 +248,12 @@ end
 function LerkFleeIfScaredNode:SetupInstinctsTarget(context)
   self.state.lastUpdatedInstinctsTargetTerrified = context.survivalInstincts.terrified
 
+  context.terrifiedRetreatLocationsTouched = context.terrifiedRetreatLocationsTouched or {}
   local moveContext = {
     bot = context.bot,
     move = context.move,
-    survivalInstincts = context.survivalInstincts
+    survivalInstincts = context.survivalInstincts,
+    terrifiedRetreatLocationsTouched = context.terrifiedRetreatLocationsTouched
   }
 
   self.setInstinctsTargetNode:Start(moveContext)
@@ -303,6 +305,7 @@ end
 
 function LerkFleeIfScaredNode:Finish(context, natural, res)
   if context.debug then Log('LerkFleeIfScaredNode -> Finish') end
+  context.terrifiedRetreatLocationsTouched = nil
   if self.state.movingTowardsInstinctsTarget then
     self.moveNode:Finish(self.state.moveContext, false)
   end

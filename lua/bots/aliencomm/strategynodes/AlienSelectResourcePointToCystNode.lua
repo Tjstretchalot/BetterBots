@@ -49,7 +49,13 @@ function AlienSelectResourcePointToCystNode:Run(context)
       local ent = Shared.GetEntity(info.id)
       if ent then
         local locNm = UrgentGetLocationName(ent)
-        local acceptable = #context.senses:GetKnownEnemiesInRoom(locNm) == 0 and not locsToAvoid[locNm]
+        local enemies = context.senses:GetKnownEnemiesInRoom(locNm, AlienSensedEnemyFilters.FilterNonThreatening())
+        if context.debug then Log('#enemies in %s = %s', locNm, #enemies) end
+        for _, enemy in ipairs(enemies) do
+          local ene = Shared.GetEntity(enemy.id)
+          if context.debug then Log('  %s', ene and (ene.GetName and ene:GetName() or ene) or nil) end
+        end
+        local acceptable = #enemies == 0 and not locsToAvoid[locNm]
 
         if acceptable then
           for _, hive in ipairs(hives) do

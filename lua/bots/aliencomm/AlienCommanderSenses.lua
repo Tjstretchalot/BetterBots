@@ -35,6 +35,8 @@ function AlienCommanderSenses:Update(player)
 end
 
 function AlienCommanderSenses:Clean()
+  self.gameTime = 0
+  self.time = 0
   self.resources = nil
   self.nextUpdateHarvesters = nil
   self.harvesterInfos = nil
@@ -110,10 +112,18 @@ end
 -- }
 --
 -- @treturn table the iterable (via ipairs) enemies
-function AlienCommanderSenses:GetAllKnownEnemies()
+function AlienCommanderSenses:GetAllKnownEnemies(filter)
   if not self.enemies then return {} end
+  local unfiltered = self.enemies.fullArr
+  if not filter then return unfiltered end
 
-  return self.enemies.fullArr
+  local res = {}
+  for i=1, #unfiltered do
+    if not filter(unfiltered[i]) then
+      table.insert(res, i)
+    end
+  end
+  return res
 end
 
 --- Get a list of known enemies by location
@@ -122,10 +132,19 @@ end
 --
 -- @tparam string locationName the name of the location
 -- @treturn table the iterable (via ipairs) enemies in that room
-function AlienCommanderSenses:GetKnownEnemiesInRoom(locationName)
+function AlienCommanderSenses:GetKnownEnemiesInRoom(locationName, filter)
   if not self.enemies then return {} end
+  local unfiltered = self.enemies.byLocation[locationName]
+  if not unfiltered then return {} end
+  if not filter then return unfiltered end
 
-  return self.enemies.byLocation[location] or {}
+  local res = {}
+  for i=1, #unfiltered do
+    if not filter(unfiltered[i]) then
+      table.insert(res, unfiltered[i])
+    end
+  end
+  return res
 end
 
 --- Get the name of the location where the enemy has their "main base"
@@ -326,6 +345,19 @@ function AlienCommanderSenses:UpdateEnemies()
   self.enemies = self.enemies or { fullArr = {}, byLocation = {}, byId = {} }
   self.nextUpdateEnemies = self.time + 0.9 * math.random(0.2)
 
+  local immediatelyClean = {}
+  for _, info in ipairs(self.enemies.fullArr) do
+    local ent = Shared.GetEntity(info.id)
+    if not ent then
+      table.insert(immediatelyClean, info.id)
+    end
+  end
+
+  for _, id in ipairs(immediatelyClean) do
+    self:_RemoveEnemyById(id)
+  end
+  immediatelyClean = nil
+
   local missingIds = {}
   for _, info in ipairs(self.enemies.fullArr) do
     -- do this check now to avoid blowing up size of missingIds. We mostly
@@ -345,7 +377,7 @@ function AlienCommanderSenses:UpdateEnemies()
       local locNm = UrgentGetLocationName(ent)
 
       if not info then
-        info = { id = id }
+        info = { id = id, locationName = locNm }
         self.enemies.byLocation[locNm] = self.enemies.byLocation[locNm] or {}
         table.insert(self.enemies.fullArr, info)
         table.insert(self.enemies.byLocation[locNm], info)
@@ -363,8 +395,9 @@ function AlienCommanderSenses:UpdateEnemies()
 
       if info.locationName and info.locationName ~= locNm then
         local ind = false
-        for i = 1, #self.enemies.byLocation[info.locationName] do
-          if self.enemies.byLocation[i].id == id then
+        local byLocArr = self.enemies.byLocation[info.locationName]
+        for i = 1, #byLocArr do
+          if byLocArr[i].id == id then
             ind = i
             break
           end
@@ -373,8 +406,14 @@ function AlienCommanderSenses:UpdateEnemies()
         table.remove(self.enemies.byLocation[info.locationName], ind)
       end
 
-      info.locationName = locNm
-      table.insert(self.enemies.byLocation[locNm], info)
+      if not self.enemies.byLocation[locNm] then
+        self.enemies.byLocation[locNm] = {}
+      end
+
+      if info.locationName ~= locNm then
+        info.locationName = locNm
+        table.insert(self.enemies.byLocation[locNm], info)
+      end
     end
   end
 

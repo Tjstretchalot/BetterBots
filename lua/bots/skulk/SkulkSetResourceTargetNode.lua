@@ -21,7 +21,7 @@ function SkulkSetResourceTargetNode:Run(context)
 
   for _, chair in ientitylist(Shared.GetEntitiesWithClassname("CommandStation")) do
     for ind = #points, 1, -1 do
-      if points[ind]:GetLocationId() == chair:GetLocationId() then
+      if points[ind]:GetLocationName() == chair:GetLocationName() then
         table.remove(points, ind)
         break
       end

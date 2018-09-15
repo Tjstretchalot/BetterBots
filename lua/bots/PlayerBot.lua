@@ -395,7 +395,7 @@ end
 function PlayerBot:OnDestroy()
     Bot.OnDestroy(self)
 
-    if self.brain then
+    if self.brain and self.brain.OnLoseControl then
       self.brain:OnLoseControl(self)
     end
 

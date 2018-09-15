@@ -24,8 +24,9 @@ function LerkMoveToTargetNode:Run(context)
   local player = bot:GetPlayer()
   local origin = player:GetOrigin()
   local eyePos = player:GetEyePos()
+  local targetEngagePoint = target.GetEngagementPoint and target:GetEngagementPoint() or target:GetOrigin()
   if self:IsCloseEnoughToTarget(player, eyePos, target) then
-    LerkUtils.DirectLookTowards(context.move, player, target:GetEngagementPoint())
+    LerkUtils.DirectLookTowards(context.move, player, targetEngagePoint)
     return self.Success
   end
 
@@ -55,7 +56,7 @@ function LerkMoveToTargetNode:Run(context)
     eyePos = eyePos,
     target = target,
     targetOrigin = target:GetOrigin(),
-    targetEngagePoint = target:GetEngagementPoint(),
+    targetEngagePoint = target.GetEngagementPoint and target:GetEngagementPoint() or target:GetOrigin(),
     time = time
   })
 
@@ -75,7 +76,7 @@ function LerkMoveToTargetNode:IsCloseEnoughToTarget(player, eyePos, target)
   if GetDistanceToTouch(eyePos, target) < 1 then return true end
 
   if not HasMixin(target, 'Ragdoll') then
-    local distXZ = (eyePos - target:GetEngagementPoint()):GetLengthXZ()
+    local distXZ = (eyePos - (target.GetEngagementPoint and target:GetEngagementPoint() or target:GetOrigin())):GetLengthXZ()
     if distXZ < 2 then return true end
     return false
   end
@@ -126,7 +127,14 @@ function LerkMoveToTargetNode:TryUseGeneratedPathToTarget(context, info)
 end
 
 function LerkMoveToTargetNode:DirectMoveTowards(context, info, pt, suppressWiggle)
-  self.lastLookDir = LerkUtils.DirectMoveTowards(context, info.move, info.player, pt, suppressWiggle)
+  if not suppressWiggle then
+    context.randomMoveOffset = context.randomMoveOffset or math.random() * 5.78
+
+    local theta = math.sin(context.randomMoveOffset + Shared.GetTime() * 5.78) * 0.7
+    local dist = (pt - context.bot:GetPlayer():GetEyePos()):GetLengthXZ()
+    pt.y = pt.y + dist * math.tan(theta)
+  end
+  self.lastLookDir = LerkUtils.DirectMoveTowards(context, info.move, info.player, pt, true) -- we dont need expensive wiggling
 end
 
 function LerkMoveToTargetNode:TryGenerateAndUsePathToTarget(context, info)
@@ -157,7 +165,7 @@ function LerkMoveToTargetNode:TryDirectMoveToTarget(context, info)
     return false
   end
 
-  self:DirectMoveTowards(context, info, info.targetEngagePoint)
+  self:DirectMoveTowards(context, info, info.targetEngagePoint, true)
   return true
 end
 

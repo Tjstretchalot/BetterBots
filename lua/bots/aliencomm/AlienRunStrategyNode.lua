@@ -8,6 +8,7 @@ function AlienRunStrategyNode:Run(context)
   context.strategy.context.senses = context.senses
   context.strategy.context.debug = context.debug
 
+  if context.debug then Log('Running strategy %s', context.strategy) end
   context.strategy:Run()
   return self.Success
 end

@@ -22,12 +22,14 @@ function AlienCommUtils.ExecuteTechId(commander, techId, pos, hostEntity, target
   return success
 end
 
-function AlienCommUtils.IsHiveUpgrading(senses, hive)
-  return (hive.researchingId ~= nil and hive.researchingId ~= 1) or senses:GetIsRecentlyResearching(hive:GetId())
+function AlienCommUtils.IsResearching(senses, entity)
+  return (entity.researchingId ~= nil and entity.researchingId ~= 1) or senses:GetIsRecentlyResearching(entity:GetId())
 end
 
+AlienCommUtils.IsHiveUpgrading = AlienCommUtils.IsResearching
+
 function AlienCommUtils.IsHiveUpgraded(hive)
-  return GetHasTech(hive, kTechId.ShiftHive) or GetHasTech(hive, kTechId.CragHive) or GetHasTech(hive, kTechId.ShadeHive)
+  return hive:GetTechId() ~= kTechId.Hive
 end
 
 function AlienCommUtils.IsTargetMisted(senses, target)
@@ -40,7 +42,7 @@ function AlienCommUtils.HasNearEnoughInfester(target)
 
   local nearbyInfesters = GetEntitiesWithMixinWithinRange('Infestation', target:GetOrigin(), AlienCommUtils.maxInfestationRange)
   for _, infester in ipairs(nearbyInfesters) do
-    if AlienCommUtils.IsInfesterCloseEnough(infester:GetLocation(), infester:GetInfestationMaxRadius(), target:GetOrigin(), target:GetCoords().yAxis) and
+    if AlienCommUtils.IsInfesterCloseEnough(infester:GetOrigin(), infester:GetInfestationMaxRadius(), target:GetOrigin(), target:GetCoords().yAxis) and
         (not infester:isa('Cyst') or infester:GetIsActuallyConnected()) then
       return true
     end
@@ -58,10 +60,108 @@ function AlienCommUtils.IsInfesterCloseEnough(infesterLoc, infesterRadius, loc, 
   return dist < infesterRadius and yDist < 1
 end
 
-function AlienCommUtils.GetRandomBuildPosition(techId, aroundPos, maxDist)
-  -- originally copied from CommanderBrain
+local function GetSignedRandom()
+  if math.random() < 0.5 then
+    return math.random()
+  else
+    return math.random() * -1
+  end
+end
+
+function AlienCommUtils.GetRandomBuildPosition(commander, techId, aroundPos, maxDist)
+  assert(commander)
+  assert(techId)
+  assert(aroundPos)
+  assert(maxDist)
   local extents = GetExtents(techId)
   local validationFunc = LookupTechData(techId, kTechDataRequiresInfestation, nil) and GetIsPointOnInfestation or nil
   local randPos = GetRandomSpawnForCapsule(extents.y, extents.x, aroundPos, 0.01, maxDist, EntityFilterAll(), validationFunc)
+
+  if randPos then
+    local trace = GetCommanderPickTarget(commander, randPos, true, true, false)
+    if trace.fraction ~= 1 then
+      local legalBuildPosition, position, _, errorString = GetIsBuildLegal(techId, trace.endPoint, 0, kStructureSnapRadius, commander)
+      if legalBuildPosition then
+        randPos = position
+      else
+        randPos = nil
+      end
+    end
+  end
+
+  if not randPos then
+    for i=1, 10 do
+      randPos = aroundPos + Vector(GetSignedRandom() * maxDist, GetSignedRandom() * maxDist, GetSignedRandom() * maxDist)
+
+      local trace = GetCommanderPickTarget(commander, randPos, true, true, false)
+      if trace.fraction ~= 1 then
+        local legalBuildPosition, position, _, errorString = GetIsBuildLegal(techId, trace.endPoint, 0, kStructureSnapRadius, commander)
+
+        if legalBuildPosition then
+          randPos = position
+          break
+        end
+      end
+
+      randPos = nil
+    end
+  end
+
   return randPos
+end
+
+AlienCommUtils.HiveDefenderClassnames = {
+  Skulk = true, Lerk = true, Gorge = true, Onos = true, Fade = true,
+  Whip = true
+}
+function AlienCommUtils.IsSafeHiveDrop(senses, techPoint, locNmOrNil)
+  local locNm = locNmOrNil and locNmOrNil or UrgentGetLocationName(techPoint)
+
+  local enemies = senses:GetKnownEnemiesInRoom(locNm, AlienSensedEnemyFilters.FilterNonThreatening())
+  if #enemies > 0 then return false, 'there are enemies in ' .. locNm end
+
+  for _, adjLoc in ipairs(GetAdjacentTo(locNm)) do
+    enemies = senses:GetKnownEnemiesInRoom(adjLoc, AlienSensedEnemyFilters.FilterNonThreatening())
+    if #enemies > 0 then return false, 'there are enemies in ' .. adjLoc end
+  end
+
+  return true, nil
+end
+
+function AlienCommUtils.IsDefendedHiveDrop(senses, techPoint, locNmOrNil)
+  local locNm = locNmOrNil and locNmOrNil or UrgentGetLocationName(techPoint)
+
+  local foundFriend = false
+  for _, alien in ientitylist(Shared.GetEntitiesWithClassname('Alien')) do
+    if alien:GetIsAlive()
+      and AlienCommUtils.HiveDefenderClassnames[alien.classname]
+      and alien:GetLocationName() == locNm then
+      return true, nil
+    end
+  end
+
+  return false, 'we have nobody in ' .. locNm
+end
+
+-- returns success, reason or nil (reason provided only on failure)
+function AlienCommUtils.IsViableHiveDrop(senses, techPoint)
+  local locNm = UrgentGetLocationName(techPoint)
+
+  local suc, rsn = AlienCommUtils.IsDefendedHiveDrop(senses, techPoint, locNm)
+  if not suc then return false, rsn end
+
+  return AlienCommUtils.IsSafeHiveDrop(senses, techPoint, locNm)
+end
+
+-- includes manually spawned eggs
+function AlienCommUtils.GetHiveHasEggs(hive)
+  local locNm = hive:GetLocationName()
+  local eggs = GetEntitiesForTeam("Egg", hive:GetTeamNumber())
+
+  for index, egg in ipairs(eggs) do
+    if egg:GetLocationName() == locNm and egg:GetIsAlive() and egg:GetIsFree() then
+      return true
+    end
+  end
+  return false
 end

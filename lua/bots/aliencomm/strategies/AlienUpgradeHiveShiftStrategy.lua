@@ -6,14 +6,19 @@ function AlienUpgradeHiveShiftStrategy:GetStrategyScore(senses)
   for _, hive in ientitylist(Shared.GetEntitiesWithClassname('Hive')) do
     if hive:GetIsBuilt() and hive:GetIsAlive()
         and not AlienCommUtils.IsHiveUpgrading(senses, hive)
+        and not AlienCommUtils.IsHiveUpgraded(hive)
         and GetHiveTypeResearchAllowed(hive, kTechId.UpgradeToShiftHive) then
       foundHiveThatCanBeUpgradedShift = true
+      break
     end
   end
 
   return foundHiveThatCanBeUpgradedShift and kAlienStrategyScore.Average or kAlienStrategyScore.NotViable
 end
 
+function AlienUpgradeHiveShiftStrategy:GetStartMessages()
+  return { 'Going shift' }
+end
 
 function AlienUpgradeHiveShiftStrategy:CreateTree()
   local res = BehaviorTree()

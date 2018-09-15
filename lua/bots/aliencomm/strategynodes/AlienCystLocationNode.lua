@@ -50,6 +50,28 @@ function AlienCystLocationNode:Run(context)
   local cystPoints = GetCystPoints(cystPoint, true, context.senses.team)
 
   if context.debug or debugCysts then Log('cystPoints = %s', cystPoints) end
+
+  if not cystPoints or #cystPoints == 0 then
+    local randPoint
+
+    for i = 1, 10 do
+      randPoint = context.location + Vector(math.random() * Cyst.kInfestationRadius, 1, math.random() * Cyst.kInfestationRadius)
+      local trace = Shared.TraceRay(randPoint, randPoint + Vector(0, -5, 0), CollisionRep.Move, PhysicsMask.All, EntityFilterAll())
+
+      if trace.endPoint then
+        randPoint.y = trace.endPoint.y
+        if AlienCommUtils.IsInfesterCloseEnough(randPoint, Cyst.kInfestationRadius, context.location) then
+          cystPoint = randPoint
+          cystPoints = GetCystPoints(cystPoint, true, context.senses.team)
+
+          if cystPoints and #cystPoints == 0 then
+            break
+          end
+        end
+      end
+    end
+  end
+
   if not cystPoints or #cystPoints == 0 then return self.Failure end
 
   local cost = #cystPoints * kCystCost

@@ -24,7 +24,7 @@ function AlienSelectLocationForUpgradeNode:Run(context)
 
   if not bestHive then return self.Failure end
 
-  local upgLoc = AlienCommUtils.GetRandomBuildPosition(self.techId, bestHive:GetOrigin(), 10)
+  local upgLoc = AlienCommUtils.GetRandomBuildPosition(context.bot:GetPlayer(), self.techId, bestHive:GetOrigin(), 10)
   if not upgLoc then return self.Failure end
 
   context.location = upgLoc

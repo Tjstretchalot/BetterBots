@@ -173,6 +173,7 @@ function LerkSetSurvivalTargetNode:SelectTerrifiedSurvivalTarget(context, instin
   end
 
   if not context.terrifiedRetreatLocationsTouched then
+    Log('had to initialize retreat locations')
     context.terrifiedRetreatLocationsTouched = {}
   end
 
@@ -193,6 +194,7 @@ function LerkSetSurvivalTargetNode:SelectTerrifiedSurvivalTarget(context, instin
 
   if #viable == 0 then
     -- no choice, just loop
+    Log('had to clear retreat locations')
     context.terrifiedRetreatLocationsTouched = nil
     return self:SelectTerrifiedSurvivalTarget(context, instincts)
   end

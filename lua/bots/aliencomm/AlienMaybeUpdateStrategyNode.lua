@@ -28,9 +28,11 @@ function AlienMaybeUpdateStrategyNode:DoFullStrategyCheck(context)
   local oldStrategy = context.strategy
   local oldStrategyScore = oldStrategy and oldStrategy:GetStrategyScore(context.senses) or nil
 
+  context.senses.debug = context.debug
   local bestStrategies, bestStrategyScore = {}, oldStrategyScore or kAlienStrategyScore.NotViable
   for _, strat in ipairs(context.strategies) do
     local score = strat:GetStrategyScore(context.senses)
+    if context.debug then Log('score for doing %s is %s', strat, score) end
     if score == bestStrategyScore then
       table.insert(bestStrategies, strat)
     elseif score > bestStrategyScore then
@@ -38,6 +40,7 @@ function AlienMaybeUpdateStrategyNode:DoFullStrategyCheck(context)
       bestStrategyScore = score
     end
   end
+  context.senses.debug = nil
 
   if oldStrategy and (oldStrategyScore == bestStrategyScore) then
     if context.debug then Log('old strategy is best with a score of %s', bestStrategyScore) end
@@ -60,15 +63,18 @@ function AlienMaybeUpdateStrategyNode:DoFullStrategyCheck(context)
   local playerLocId = player.locationId
   local playerTeamNum = player:GetTeamNumber()
   local playerTeamTyp = player:GetTeamType()
+  local playersForTeam = GetEntitiesForTeam('Player', playerTeamNum)
   for _, msg in ipairs(msgs) do
-    Server.SendNetworkMessage('Chat', BuildChatMessage(
-      true, -- team only
-      playerName,
-      playerLocId,
-      playerTeamNum,
-      playerTeamTyp,
-      msg
-    ), true)
+    for _, player in ipairs(playersForTeam) do
+      Server.SendNetworkMessage(player, 'Chat', BuildChatMessage(
+        true, -- team only
+        playerName,
+        playerLocId,
+        playerTeamNum,
+        playerTeamTyp,
+        msg
+      ), true)
+    end
   end
 
   context.strategy = bestStrategy

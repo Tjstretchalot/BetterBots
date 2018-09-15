@@ -3,6 +3,19 @@ AlienStrategyUtils = {}
 function AlienStrategyUtils.CreateMaintenenceNode() -- succeeds if it does stuff, fails otherwise
   return SelectorNode():Setup({
     SequenceNode():Setup({
+      AlienSelectHiveToSpawnEggsNode(),
+      AlwaysSucceedDecorator():Setup(RepeatUntilFailureNode():Setup(InvertDecorator():Setup(AlienCheckResourcesNode():Setup(kShiftHatchCost)))),
+      AlwaysSucceedDecorator():Setup(
+        RepeatUntilFailureNode():Setup(
+          InvertDecorator():Setup(SequenceNode():Setup({
+            AlienWaitActionCooldownNode(),
+            AlienSetActionCooldownNode():Setup(5),
+            AlienSpawnEggsAtTargetNode()
+          }))
+        )
+      )
+    }),
+    SequenceNode():Setup({
       AlienSelectMistableTargetNode(),
       AlwaysSucceedDecorator():Setup(RepeatUntilFailureNode():Setup(InvertDecorator():Setup(AlienCheckResourcesNode():Setup(2)))),
       AlienSetActionCooldownNode(),
@@ -14,6 +27,11 @@ function AlienStrategyUtils.CreateMaintenenceNode() -- succeeds if it does stuff
       ClearTargetNode(),
       AlwaysSucceedDecorator():Setup(RepeatUntilFailureNode():Setup(InvertDecorator():Setup(AlienCystLocationNode()))),
       AlienSetActionCooldownNode():Setup(3.35)
+    }),
+    SequenceNode():Setup({
+      AlienCheckResourcesNode():Setup(90),
+      AlienTryPlaceSupportStructuresNode(),
+      AlienSetActionCooldownNode()
     })
   })
 end

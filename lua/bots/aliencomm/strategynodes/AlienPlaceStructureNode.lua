@@ -28,6 +28,6 @@ function AlienPlaceStructureNode:Run(context)
     nil  -- targetId
   )
 
-  if context.debug then Log('placed structure %s in %s, success = %s', self.techId, GetLocationForPoint(context.location), success) end
+  if context.debug then Log('placed structure %s in %s, success = %s', self.techId, GetLocationForPoint(context.location):GetName(), success) end
   return success and self.Success or self.Failure
 end

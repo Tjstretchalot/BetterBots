@@ -8,8 +8,7 @@ function AlienSelectResourcePointToClaimNode:Run(context)
       local rp = Shared.GetEntity(info.id)
       if rp then
         local room = UrgentGetLocationName(rp)
-        local enemies = context.senses:GetKnownEnemiesInRoom(room)
-
+        local enemies = context.senses:GetKnownEnemiesInRoom(room, AlienSensedEnemyFilters.FilterNonThreatening())
         if #enemies == 0 then
           context.targetId = info.id
           return self.Success

@@ -1,18 +1,23 @@
 class 'AlienCreateSpursStrategy' (AlienBaseStrategy)
 
 function AlienCreateSpursStrategy:GetStrategyScore(senses)
-  local foundShiftHive = false
-
   local teamTechTree = GetTechTree(senses.team)
 
   local foundShiftHive = teamTechTree:GetHasTech(kTechId.ShiftHive)
   local numSpurs = #GetEntitiesForTeam('Spur', senses.team)
 
+  if senses.debug then Log('CreateSpurs - shift hive? = %s, spurs = %s', foundShiftHive, numSpurs) end
   if foundShiftHive and numSpurs < 3 then
     return kAlienStrategyScore.Higher
   end
 
   return kAlienStrategyScore.NotViable
+end
+
+function AlienCreateSpursStrategy:GetStartMessages(senses)
+  return {
+    'Getting spurs'
+  }
 end
 
 function AlienCreateSpursStrategy:CreateTree()
