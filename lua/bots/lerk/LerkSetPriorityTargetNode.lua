@@ -135,6 +135,10 @@ function LerkSetPriorityTargetNode:IsBetterTarget(oldInfo, newInfo, bot, player)
 end
 
 function LerkSetPriorityTargetNode:DefaultSameThingComparer(oldInfo, newInfo, bot, player)
+  assert(oldInfo)
+  assert(newInfo)
+  assert(bot)
+  assert(player)
   -- prefer powered
   if HasMixin(oldInfo.entity, 'PowerConsumer') then
     oldInfo.powered = oldInfo.powered ~= nil and oldInfo.powered or oldInfo.entity:GetIsPowered()
@@ -361,7 +365,7 @@ function LerkSetPriorityTargetNode:IsBetterTargetThanARC(oldInfo, newInfo, bot, 
     if not oldInfo.isDeployed and newInfo.isDeployed then return true end
     if oldInfo.isDeployed and not newInfo.isDeployed then return false end
 
-    return self:DefaultSameThingComparer()
+    return self:DefaultSameThingComparer(oldInfo, newInfo, bot, player)
   end
 
   -- prefer arcs that can hit stuff

@@ -170,5 +170,7 @@ function LerkMoveToTargetNode:TryDirectMoveToTarget(context, info)
 end
 
 function LerkMoveToTargetNode:Finish(context, natural, res)
-  context.path = nil
+  if context then
+    context.path = nil
+  end
 end

@@ -63,7 +63,7 @@ local function LerkGetDangerRanking(locationNm)
         ranking.aliens = ranking.aliens + 1
       elseif ent:isa('Marine') then
         ranking.marines = ranking.marines + 1
-      elseif ent:isa('Sentry') and ent:GetIsPowered() then
+      elseif ent:isa('Sentry') and ent.attachedToBattery then
         ranking.poweredSentries = ranking.poweredSentries + 1
       elseif ent:isa('PhaseGate') then
         ranking.phaseGates = ranking.phaseGates + 1
