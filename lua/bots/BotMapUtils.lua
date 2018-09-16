@@ -14,9 +14,11 @@ local function WalkPathToFindFirstChange(startLocNm, points)
   for i=1, #points do
     local pt = points[i]
     local loc = GetLocationForPoint(pt)
-    local locNm = loc:GetName()
+    if loc then
+      local locNm = loc:GetName()
 
-    if locNm ~= startLocNm then return locNm end
+      if locNm ~= startLocNm then return locNm end
+    end 
   end
 
   return nil

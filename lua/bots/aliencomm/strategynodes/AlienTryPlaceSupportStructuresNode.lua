@@ -90,7 +90,7 @@ local function TryPlaceStructureNearPoint(self, context, location, techId, range
 end
 
 function AlienTryPlaceSupportStructuresNode:TryPlaceCragNearGorgeTunnel(context, crags, shifts)
-  for _, tunnel in ientitylist(Shared.GetEntitiesWithClassname('Tunnel')) do
+  for _, tunnel in ientitylist(Shared.GetEntitiesWithClassname('TunnelEntrance')) do
     if tunnel:GetIsBuilt() and tunnel:GetIsAlive() then
       if not HasEffectFromAtPoint(crags, tunnel:GetOrigin(), Crag.kHealRadius) then
         return TryPlaceStructureNearPoint(self, context, tunnel:GetOrigin(), kTechId.Crag)
